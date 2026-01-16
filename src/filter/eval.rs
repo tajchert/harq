@@ -34,6 +34,11 @@ pub enum Field {
     // Top-level entry fields
     Method,
     Url,
+    Host,
+    Domain, // alias for Host
+    Path,
+    Scheme,
+    Query,
     Status,
     StatusText,
     Time,
@@ -235,6 +240,11 @@ impl Field {
         Ok(match s.to_lowercase().as_str() {
             "method" => Field::Method,
             "url" => Field::Url,
+            "host" => Field::Host,
+            "domain" => Field::Domain,
+            "path" => Field::Path,
+            "scheme" | "protocol" => Field::Scheme,
+            "query" | "querystring" | "query_string" => Field::Query,
             "status" => Field::Status,
             "statustext" | "status_text" => Field::StatusText,
             "time" => Field::Time,
@@ -267,6 +277,10 @@ impl Field {
         match self {
             Field::Method => Some(Value::String(entry.request.method.clone())),
             Field::Url => Some(Value::String(entry.request.url.clone())),
+            Field::Host | Field::Domain => Some(Value::String(extract_host(&entry.request.url))),
+            Field::Path => Some(Value::String(extract_path(&entry.request.url))),
+            Field::Scheme => Some(Value::String(extract_scheme(&entry.request.url))),
+            Field::Query => extract_query(&entry.request.url).map(Value::String),
             Field::Status => Some(Value::Number(entry.response.status as f64)),
             Field::StatusText => Some(Value::String(entry.response.status_text.clone())),
             Field::Time => Some(Value::Number(entry.time)),
@@ -459,6 +473,56 @@ fn find_top_level(s: &str, pattern: &str) -> Option<usize> {
     }
 
     None
+}
+
+/// Extract host/domain from URL (e.g., "https://api.example.com/path" -> "api.example.com")
+fn extract_host(url: &str) -> String {
+    let without_scheme = url
+        .strip_prefix("https://")
+        .or_else(|| url.strip_prefix("http://"))
+        .unwrap_or(url);
+
+    without_scheme
+        .split('/')
+        .next()
+        .unwrap_or(without_scheme)
+        .split(':')
+        .next()
+        .unwrap_or(without_scheme)
+        .to_string()
+}
+
+/// Extract path from URL (e.g., "https://api.example.com/v1/users?id=1" -> "/v1/users")
+fn extract_path(url: &str) -> String {
+    let without_scheme = url
+        .strip_prefix("https://")
+        .or_else(|| url.strip_prefix("http://"))
+        .unwrap_or(url);
+
+    without_scheme
+        .find('/')
+        .map(|i| {
+            let path = &without_scheme[i..];
+            // Remove query string
+            path.split('?').next().unwrap_or(path).to_string()
+        })
+        .unwrap_or_else(|| "/".to_string())
+}
+
+/// Extract scheme from URL (e.g., "https://example.com" -> "https")
+fn extract_scheme(url: &str) -> String {
+    if url.starts_with("https://") {
+        "https".to_string()
+    } else if url.starts_with("http://") {
+        "http".to_string()
+    } else {
+        "".to_string()
+    }
+}
+
+/// Extract query string from URL (e.g., "https://example.com/path?foo=bar" -> "foo=bar")
+fn extract_query(url: &str) -> Option<String> {
+    url.find('?').map(|i| url[i + 1..].to_string())
 }
 
 #[cfg(test)]
