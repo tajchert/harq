@@ -69,6 +69,12 @@ pub enum Field {
     // Header access
     RequestHeader(String),
     ResponseHeader(String),
+
+    // GraphQL fields
+    GqlOperationName,
+    GqlOperationType,
+    GqlQuery,
+    IsGraphQL,
 }
 
 /// Value for comparison
@@ -172,6 +178,11 @@ impl FilterExpr {
             }
         }
 
+        // Try to parse as a standalone field name (for boolean checks like `isGraphQL`)
+        if let Ok(field) = Field::parse(expr) {
+            return Ok(FilterExpr::Bool(field));
+        }
+
         bail!("Unable to parse expression: {}", expr);
     }
 
@@ -269,6 +280,12 @@ impl Field {
             "timings.wait" | "wait" => Field::TimingWait,
             "timings.receive" | "receive" => Field::TimingReceive,
 
+            // GraphQL fields
+            "gql.operation" | "gql.operationname" | "operationname" => Field::GqlOperationName,
+            "gql.type" | "gql.operationtype" | "operationtype" => Field::GqlOperationType,
+            "gql.query" => Field::GqlQuery,
+            "gql.isgraphql" | "isgraphql" => Field::IsGraphQL,
+
             _ => bail!("Unknown field: {}", s),
         })
     }
@@ -307,6 +324,12 @@ impl Field {
 
             Field::RequestHeader(name) => entry.request_header(name).map(|s| Value::String(s.to_string())),
             Field::ResponseHeader(name) => entry.response_header(name).map(|s| Value::String(s.to_string())),
+
+            // GraphQL fields
+            Field::GqlOperationName => extract_graphql_field(entry, "operationName"),
+            Field::GqlOperationType => extract_graphql_operation_type(entry),
+            Field::GqlQuery => extract_graphql_field(entry, "query"),
+            Field::IsGraphQL => Some(Value::Bool(is_graphql_request(entry))),
         }
     }
 
@@ -523,6 +546,85 @@ fn extract_scheme(url: &str) -> String {
 /// Extract query string from URL (e.g., "https://example.com/path?foo=bar" -> "foo=bar")
 fn extract_query(url: &str) -> Option<String> {
     url.find('?').map(|i| url[i + 1..].to_string())
+}
+
+/// Check if a request is a GraphQL request
+/// A request is considered GraphQL if:
+/// 1. Method is POST
+/// 2. Content-Type contains "json" or "graphql"
+/// 3. Request body is valid JSON with `operationName` or `query` field
+fn is_graphql_request(entry: &Entry) -> bool {
+    // Must be POST
+    if entry.request.method.to_uppercase() != "POST" {
+        return false;
+    }
+
+    // Check content type
+    let content_type = entry
+        .request
+        .post_data
+        .as_ref()
+        .map(|pd| pd.mime_type.to_lowercase())
+        .unwrap_or_default();
+
+    if !content_type.contains("json") && !content_type.contains("graphql") {
+        return false;
+    }
+
+    // Try to parse body as JSON and check for GraphQL fields
+    if let Some(body) = get_request_body_json(entry) {
+        body.get("operationName").is_some() || body.get("query").is_some()
+    } else {
+        false
+    }
+}
+
+/// Get request body as parsed JSON
+fn get_request_body_json(entry: &Entry) -> Option<serde_json::Value> {
+    let text = entry.request.post_data.as_ref()?.text.as_ref()?;
+    serde_json::from_str(text).ok()
+}
+
+/// Extract a string field from GraphQL request body
+fn extract_graphql_field(entry: &Entry, field: &str) -> Option<Value> {
+    let json = get_request_body_json(entry)?;
+    let value = json.get(field)?;
+
+    match value {
+        serde_json::Value::String(s) => Some(Value::String(s.clone())),
+        serde_json::Value::Null => None,
+        _ => Some(Value::String(value.to_string())),
+    }
+}
+
+/// Extract operation type (query/mutation/subscription) from GraphQL query string
+fn extract_graphql_operation_type(entry: &Entry) -> Option<Value> {
+    let json = get_request_body_json(entry)?;
+    let query = json.get("query")?.as_str()?;
+
+    // Find the first keyword: query, mutation, or subscription
+    let trimmed = query.trim_start();
+
+    for keyword in ["query", "mutation", "subscription"] {
+        if trimmed.starts_with(keyword) {
+            // Make sure it's followed by whitespace, '(', or '{'
+            let rest = &trimmed[keyword.len()..];
+            if rest.is_empty()
+                || rest.starts_with(char::is_whitespace)
+                || rest.starts_with('(')
+                || rest.starts_with('{')
+            {
+                return Some(Value::String(keyword.to_string()));
+            }
+        }
+    }
+
+    // If no explicit type, it's a query (shorthand syntax: `{ field }`)
+    if trimmed.starts_with('{') {
+        return Some(Value::String("query".to_string()));
+    }
+
+    None
 }
 
 #[cfg(test)]
