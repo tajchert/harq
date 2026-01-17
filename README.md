@@ -17,6 +17,15 @@ A CLI tool for exploring and filtering HAR files.
 
 ## Installation
 
+### Homebrew (macOS/Linux)
+
+```bash
+brew tap tajchert/tap
+brew install harq
+```
+
+### From source
+
 Build from source using Cargo:
 
 ```bash
