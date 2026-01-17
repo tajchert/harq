@@ -5,7 +5,7 @@ edition = "2021"
 description = "A CLI tool for exploring and filtering HAR (HTTP Archive) files"
 authors = ["harq contributors"]
 license = "MIT"
-repository = "https://github.com/example/harq"
+repository = "https://github.com/tajchert/harq"
 keywords = ["har", "http", "archive", "cli", "network"]
 categories = ["command-line-utilities", "web-programming"]
 
