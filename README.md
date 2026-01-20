@@ -20,8 +20,7 @@ A CLI tool for exploring and filtering HAR files.
 ### Homebrew (macOS/Linux)
 
 ```bash
-brew tap tajchert/tap
-brew install harq
+brew install tajchert/tap/harq
 ```
 
 ### From source
