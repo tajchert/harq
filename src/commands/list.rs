@@ -34,6 +34,10 @@ pub struct ListCmd {
     /// Long format (more columns)
     #[arg(short = 'l', long)]
     pub long: bool,
+
+    /// Filter by HTTP method, comma-separated (e.g. POST,PUT,DELETE)
+    #[arg(long, value_delimiter = ',')]
+    pub method: Vec<String>,
 }
 
 impl ListCmd {
@@ -44,7 +48,7 @@ impl ListCmd {
             .map(|(i, e)| (i + 1, e))
             .collect();
 
-        // Apply head/tail/limit
+        let entries = self.apply_method_filter(entries);
         let entries = self.apply_limits(entries);
 
         match self.output {
@@ -72,6 +76,21 @@ impl ListCmd {
         }
 
         entries
+    }
+
+    fn apply_method_filter<'a>(&self, entries: Vec<(usize, &'a crate::har::Entry)>) -> Vec<(usize, &'a crate::har::Entry)> {
+        if self.method.is_empty() {
+            return entries;
+        }
+
+        entries
+            .into_iter()
+            .filter(|(_, entry)| {
+                self.method
+                    .iter()
+                    .any(|method| entry.request.method.eq_ignore_ascii_case(method))
+            })
+            .collect()
     }
 
     fn print_compact(&self, entries: &[(usize, &crate::har::Entry)]) -> Result<()> {
