@@ -13,6 +13,8 @@ A CLI tool for exploring and filtering HAR files.
 - **GraphQL support** - Detect GraphQL requests and filter by operation name, type, or query
 - **Timing analysis** - Performance insights with detailed timing breakdowns and statistics
 - **Header inspection** - Search and filter HTTP headers
+- **Request replay** - Export HAR entries as runnable `curl` commands
+- **Body decoding** - Decode HAR base64 payloads and gzip-compressed response bodies
 - **Flexible input** - Read from file path or stdin
 
 ## Installation
@@ -82,6 +84,7 @@ harq ls --head 10 recording.har          # First 10 entries
 harq ls --tail 5 recording.har           # Last 5 entries
 harq ls --output json recording.har      # JSON output
 harq ls --output compact recording.har   # Tab-separated for scripting
+harq ls --method POST,PUT,DELETE recording.har  # Show write requests
 ```
 
 ### count
@@ -141,6 +144,16 @@ harq body 2 --pretty recording.har       # Pretty-print JSON
 harq body 5 --raw recording.har          # Raw bytes for binary content
 ```
 
+`body` decodes HAR `base64` content automatically. Response bodies with `Content-Encoding: gzip` are decompressed before display.
+
+### curl
+
+Emit a request as a runnable `curl` command.
+
+```bash
+harq curl 12 recording.har               # Replay request from entry 12
+```
+
 ### timing
 
 Show timing breakdown for entries.
@@ -163,6 +176,7 @@ harq headers all recording.har           # Headers for all entries
 harq headers 1 --request recording.har   # Request headers only
 harq headers 1 --response recording.har  # Response headers only
 harq headers all -f "content" recording.har  # Filter by header name
+harq headers 1 --name x-totp recording.har    # Exact header lookup
 ```
 
 ## Filter Expression Syntax
