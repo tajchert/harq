@@ -145,7 +145,7 @@ pub fn print_entry_detail(index: usize, entry: &Entry, color: bool, show_body: b
     }
 
     if show_body {
-        if let Some(text) = entry.response.content.text_content() {
+        if let Some(text) = entry.response_body_text() {
             println!("\n  {}:", label("Body"));
             print_body_preview(&text, 1000);
         }

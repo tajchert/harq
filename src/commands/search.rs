@@ -140,7 +140,7 @@ impl SearchCmd {
             }
 
             // Search response body (decode if base64)
-            if let Some(text) = entry.response.content.text_content() {
+            if let Some(text) = entry.response_body_text() {
                 if matcher.matches(&text) {
                     return true;
                 }

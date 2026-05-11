@@ -50,12 +50,19 @@ impl BodyCmd {
             bail!("Entry {} has no request body", self.index);
         };
 
-        let Some(ref text) = post_data.text else {
+        let Some(bytes) = post_data.decoded_text() else {
             bail!("Entry {} has no request body text", self.index);
         };
 
+        if self.raw {
+            io::stdout().write_all(&bytes)?;
+            return Ok(());
+        }
+
+        let text = String::from_utf8_lossy(&bytes);
+
         if self.pretty && post_data.mime_type.contains("json") {
-            self.pretty_print_json(text)?;
+            self.pretty_print_json(&text)?;
         } else {
             println!("{}", text);
         }
@@ -67,7 +74,7 @@ impl BodyCmd {
         let content = &entry.response.content;
 
         // Get decoded bytes
-        let Some(bytes) = content.decoded_text() else {
+        let Some(bytes) = entry.response_body_bytes() else {
             bail!("Entry {} has no response body", self.index);
         };
 

@@ -16,6 +16,7 @@ serde_json = "1"
 colored = "2"
 tabled = "0.15"
 base64 = "0.22"
+flate2 = "1"
 chrono = { version = "0.4", features = ["serde"] }
 regex = "1"
 anyhow = "1"

@@ -166,6 +166,8 @@ pub struct PostData {
     #[serde(default)]
     pub text: Option<String>,
     #[serde(default)]
+    pub encoding: Option<String>,
+    #[serde(default)]
     pub comment: Option<String>,
 }
 
@@ -279,24 +281,58 @@ impl Entry {
             .as_deref()
             .or_else(|| self.response_header("content-type"))
     }
+
+    /// Get response body bytes after HAR decoding and HTTP content decoding.
+    pub fn response_body_bytes(&self) -> Option<Vec<u8>> {
+        let bytes = self.response.content.decoded_text()?;
+
+        if self
+            .response_header("content-encoding")
+            .map(|value| value.to_ascii_lowercase().contains("gzip"))
+            .unwrap_or(false)
+        {
+            decode_gzip(&bytes)
+        } else {
+            Some(bytes)
+        }
+    }
+
+    /// Get response body text after HAR decoding and HTTP content decoding.
+    pub fn response_body_text(&self) -> Option<String> {
+        let bytes = self.response_body_bytes()?;
+        String::from_utf8(bytes).ok()
+    }
+}
+
+impl PostData {
+    /// Decode request postData.text when HAR marks it as base64.
+    pub fn decoded_text(&self) -> Option<Vec<u8>> {
+        decode_har_text(self.text.as_ref()?, self.encoding.as_deref())
+    }
 }
 
 impl Content {
     /// Decode content if base64 encoded
     pub fn decoded_text(&self) -> Option<Vec<u8>> {
-        let text = self.text.as_ref()?;
-
-        if self.encoding.as_deref() == Some("base64") {
-            use base64::{Engine as _, engine::general_purpose::STANDARD};
-            STANDARD.decode(text).ok()
-        } else {
-            Some(text.as_bytes().to_vec())
-        }
+        decode_har_text(self.text.as_ref()?, self.encoding.as_deref())
     }
+}
 
-    /// Get text content as string (decoding base64 if needed)
-    pub fn text_content(&self) -> Option<String> {
-        let bytes = self.decoded_text()?;
-        String::from_utf8(bytes).ok()
+fn decode_har_text(text: &str, encoding: Option<&str>) -> Option<Vec<u8>> {
+    if encoding == Some("base64") {
+        use base64::{Engine as _, engine::general_purpose::STANDARD};
+        STANDARD.decode(text).ok()
+    } else {
+        Some(text.as_bytes().to_vec())
     }
+}
+
+fn decode_gzip(bytes: &[u8]) -> Option<Vec<u8>> {
+    use flate2::read::GzDecoder;
+    use std::io::Read;
+
+    let mut decoder = GzDecoder::new(bytes);
+    let mut decoded = Vec::new();
+    decoder.read_to_end(&mut decoded).ok()?;
+    Some(decoded)
 }
