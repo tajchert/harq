@@ -79,7 +79,12 @@ impl InfoCmd {
             let mut methods: Vec<_> = methods.into_iter().collect();
             methods.sort_by(|a, b| b.1.cmp(&a.1));
             for (method, count) in methods {
-                println!("  {}: {}", method, count);
+                let method_str = if color {
+                    colorize_method(method)
+                } else {
+                    method.to_string()
+                };
+                println!("  {}: {}", method_str, count);
             }
         }
 
@@ -171,5 +176,18 @@ impl InfoCmd {
 
         println!("{}", serde_json::to_string_pretty(&info)?);
         Ok(())
+    }
+}
+
+fn colorize_method(method: &str) -> String {
+    match method {
+        "GET" => method.green().to_string(),
+        "POST" => method.blue().to_string(),
+        "PUT" => method.yellow().to_string(),
+        "DELETE" => method.red().to_string(),
+        "PATCH" => method.magenta().to_string(),
+        "HEAD" => method.cyan().to_string(),
+        "OPTIONS" => method.white().to_string(),
+        _ => method.to_string(),
     }
 }

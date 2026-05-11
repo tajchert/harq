@@ -58,10 +58,7 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
     let color = cli.color.should_color();
 
-    // Configure colored output
-    if !color {
-        colored::control::set_override(false);
-    }
+    colored::control::set_override(color);
 
     match cli.command {
         Commands::Info(cmd) => {

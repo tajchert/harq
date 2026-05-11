@@ -68,7 +68,7 @@ impl TimingCmd {
         }
     }
 
-    fn print_table(&self, har: &Har, _color: bool) -> Result<()> {
+    fn print_table(&self, har: &Har, color: bool) -> Result<()> {
         let mut entries: Vec<(usize, &crate::har::Entry)> = har.log.entries
             .iter()
             .enumerate()
@@ -104,7 +104,7 @@ impl TimingCmd {
 
         let fmt = |v: Option<f64>| -> String {
             v.filter(|&t| t >= 0.0)
-                .map(format_time)
+                .map(|time| colorize_time(time, color))
                 .unwrap_or_else(|| "-".to_string())
         };
 
@@ -119,7 +119,7 @@ impl TimingCmd {
                     } else {
                         host.to_string()
                     },
-                    total: format_time(e.time),
+                    total: colorize_time(e.time, color),
                     blocked: fmt(e.timings.blocked),
                     dns: fmt(e.timings.dns),
                     connect: fmt(e.timings.connect),
@@ -260,5 +260,20 @@ impl TimingCmd {
 
         println!("{}", serde_json::to_string_pretty(&timings)?);
         Ok(())
+    }
+}
+
+fn colorize_time(ms: f64, color: bool) -> String {
+    let formatted = format_time(ms);
+    if !color {
+        return formatted;
+    }
+
+    if ms >= 1000.0 {
+        formatted.red().bold().to_string()
+    } else if ms >= 500.0 {
+        formatted.yellow().to_string()
+    } else {
+        formatted.green().to_string()
     }
 }
