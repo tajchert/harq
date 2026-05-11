@@ -29,6 +29,10 @@ pub struct HeadersCmd {
     /// Filter headers by name (case-insensitive contains)
     #[arg(short = 'f', long)]
     pub filter: Option<String>,
+
+    /// Filter headers by exact name (case-insensitive)
+    #[arg(long)]
+    pub name: Option<String>,
 }
 
 impl HeadersCmd {
@@ -73,9 +77,7 @@ impl HeadersCmd {
                 }
 
                 let filter_fn = |h: &crate::har::Header| -> bool {
-                    self.filter.as_ref().map_or(true, |f| {
-                        h.name.to_lowercase().contains(&f.to_lowercase())
-                    })
+                    self.matches_header_name(&h.name)
                 };
 
                 let headers = Headers {
@@ -121,7 +123,7 @@ impl HeadersCmd {
                 if show_request {
                     println!("{}", label("Request Headers:"));
                     for h in &entry.request.headers {
-                        if self.matches_filter(&h.name) {
+                        if self.matches_header_name(&h.name) {
                             println!("  {}: {}",
                                 if color { h.name.cyan().to_string() } else { h.name.clone() },
                                 h.value
@@ -134,7 +136,7 @@ impl HeadersCmd {
                 if show_response {
                     println!("{}", label("Response Headers:"));
                     for h in &entry.response.headers {
-                        if self.matches_filter(&h.name) {
+                        if self.matches_header_name(&h.name) {
                             println!("  {}: {}",
                                 if color { h.name.cyan().to_string() } else { h.name.clone() },
                                 h.value
@@ -156,9 +158,15 @@ impl HeadersCmd {
         Ok(())
     }
 
-    fn matches_filter(&self, name: &str) -> bool {
-        self.filter.as_ref().map_or(true, |f| {
-            name.to_lowercase().contains(&f.to_lowercase())
+    fn matches_header_name(&self, header_name: &str) -> bool {
+        if let Some(name) = &self.name {
+            return header_name.eq_ignore_ascii_case(name);
+        }
+
+        self.filter.as_ref().map_or(true, |filter| {
+            header_name
+                .to_lowercase()
+                .contains(&filter.to_lowercase())
         })
     }
 }
