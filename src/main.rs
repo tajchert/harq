@@ -44,6 +44,9 @@ enum Commands {
     /// Extract request or response body
     Body(commands::BodyCmd),
 
+    /// Emit an entry as a curl command
+    Curl(commands::CurlCmd),
+
     /// Show timing breakdown for entries
     Timing(commands::TimingCmd),
 
@@ -86,6 +89,10 @@ fn main() -> Result<()> {
             cmd.run(&har)
         }
         Commands::Body(cmd) => {
+            let har = load_har(&cmd.file)?;
+            cmd.run(&har)
+        }
+        Commands::Curl(cmd) => {
             let har = load_har(&cmd.file)?;
             cmd.run(&har)
         }

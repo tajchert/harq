@@ -5,6 +5,7 @@ pub mod view;
 pub mod search;
 pub mod filter;
 pub mod body;
+pub mod curl;
 pub mod timing;
 pub mod headers;
 
@@ -15,5 +16,6 @@ pub use view::ViewCmd;
 pub use search::SearchCmd;
 pub use filter::FilterCmd;
 pub use body::BodyCmd;
+pub use curl::CurlCmd;
 pub use timing::TimingCmd;
 pub use headers::HeadersCmd;
