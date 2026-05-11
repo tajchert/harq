@@ -164,6 +164,51 @@ pub fn print_entry_detail(index: usize, entry: &Entry, color: bool, show_body: b
     println!();
 }
 
+/// Print only request and response headers for an entry.
+pub fn print_entry_headers(index: usize, entry: &Entry, color: bool) {
+    let label = |s: &str| {
+        if color {
+            s.bold().to_string()
+        } else {
+            s.to_string()
+        }
+    };
+
+    println!("{}", "=".repeat(60));
+    println!("{} Entry #{}", label(">>>"), index);
+    println!("{}", "=".repeat(60));
+
+    println!("\n{}", label("REQUEST"));
+    println!("  {} {} {}",
+        colorize_method(&entry.request.method),
+        entry.request.url,
+        entry.request.http_version.dimmed()
+    );
+
+    if !entry.request.headers.is_empty() {
+        println!("\n  {}:", label("Headers"));
+        for h in &entry.request.headers {
+            println!("    {}: {}", h.name.cyan(), h.value);
+        }
+    }
+
+    println!("\n{}", label("RESPONSE"));
+    println!("  {} {} {}",
+        colorize_status(entry.response.status),
+        entry.response.status_text,
+        entry.response.http_version.dimmed()
+    );
+
+    if !entry.response.headers.is_empty() {
+        println!("\n  {}:", label("Headers"));
+        for h in &entry.response.headers {
+            println!("    {}: {}", h.name.cyan(), h.value);
+        }
+    }
+
+    println!();
+}
+
 fn print_body_preview(text: &str, max_len: usize) {
     let preview = if text.len() > max_len {
         format!("{}... ({} bytes total)", &text[..max_len], text.len())

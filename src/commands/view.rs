@@ -1,6 +1,6 @@
 use crate::har::Har;
 use crate::output::OutputFormat;
-use crate::output::table::print_entry_detail;
+use crate::output::table::{print_entry_detail, print_entry_headers};
 use crate::output::json::print_entry_json;
 use anyhow::{Result, bail};
 use clap::Args;
@@ -47,6 +47,11 @@ impl ViewCmd {
         match self.output {
             OutputFormat::Json => print_entry_json(entry, true)?,
             _ => {
+                if self.headers_only {
+                    print_entry_headers(self.index, entry, color);
+                    return Ok(());
+                }
+
                 let show_body = self.full && !self.no_body && !self.headers_only;
                 print_entry_detail(self.index, entry, color, show_body);
             }
