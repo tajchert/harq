@@ -19,15 +19,13 @@ A CLI tool for exploring and filtering HAR files.
 
 ## Installation
 
-### Homebrew (macOS)
+### Homebrew (macOS/Linux)
 
 ```bash
 brew install tajchert/tap/harq
 ```
 
-Homebrew installs a prebuilt macOS binary, so Rust is not required for the normal macOS install path.
-
-Linux Homebrew installs are disabled until Linux release archives are published. Linux users can build from source.
+Homebrew installs a prebuilt binary on macOS and 64-bit Linux, so Rust is not required for the normal install path.
 
 ### From source
 

@@ -8,7 +8,7 @@
 - Add `harq headers --name NAME` for exact, case-insensitive header lookup.
 - Make `harq view --headers-only` show only request and response headers.
 - Polish interactive color output while keeping JSON, compact, body, and curl output plain.
-- Publish prebuilt macOS release archives for faster Homebrew installs without Rust.
+- Publish prebuilt macOS and Linux release archives for faster Homebrew installs without Rust.
 
 ## 0.1.0
 
